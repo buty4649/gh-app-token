@@ -1,4 +1,4 @@
-module github.com/buty4649/gh-app-auth
+module github.com/buty4649/gh-app-token
 
 go 1.24.4
 

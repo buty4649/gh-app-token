@@ -22,7 +22,7 @@ func TestValidateFlags(t *testing.T) {
 			privateKeyPath: "test.pem",
 			installationID: 123,
 			wantErr:        true,
-			errMsg:         "app ID is required (--app-id or GH_APP_AUTH_APP_ID)",
+			errMsg:         "app ID is required (--app-id or GH_APP_TOKEN_APP_ID)",
 		},
 		{
 			name:           "missing private key path",
@@ -30,7 +30,7 @@ func TestValidateFlags(t *testing.T) {
 			privateKeyPath: "",
 			installationID: 123,
 			wantErr:        true,
-			errMsg:         "private key path is required (--private-key or GH_APP_AUTH_PRIVATE_KEY)",
+			errMsg:         "private key path is required (--private-key or GH_APP_TOKEN_PRIVATE_KEY)",
 		},
 		{
 			name:           "no installation ID flags",

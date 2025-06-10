@@ -1,6 +1,6 @@
 package main
 
-import "github.com/buty4649/gh-app-auth/cmd/root"
+import "github.com/buty4649/gh-app-token/cmd/root"
 
 func main() {
 	root.Execute()
