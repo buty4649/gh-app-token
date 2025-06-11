@@ -39,7 +39,10 @@ func newMockServer(t *testing.T) *mockServer {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
-		json.NewEncoder(w).Encode(installationResponse{ID: mock.installationID})
+		if err := json.NewEncoder(w).Encode(installationResponse{ID: mock.installationID}); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	})
 
 	mux.HandleFunc("/api/v3/repos/", func(w http.ResponseWriter, r *http.Request) {
@@ -47,7 +50,10 @@ func newMockServer(t *testing.T) *mockServer {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
-		json.NewEncoder(w).Encode(installationResponse{ID: mock.installationID})
+		if err := json.NewEncoder(w).Encode(installationResponse{ID: mock.installationID}); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	})
 
 	mux.HandleFunc("/api/v3/users/", func(w http.ResponseWriter, r *http.Request) {
@@ -55,7 +61,10 @@ func newMockServer(t *testing.T) *mockServer {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
-		json.NewEncoder(w).Encode(installationResponse{ID: mock.installationID})
+		if err := json.NewEncoder(w).Encode(installationResponse{ID: mock.installationID}); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	})
 
 	// Mock installation token endpoint
@@ -64,7 +73,10 @@ func newMockServer(t *testing.T) *mockServer {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
-		json.NewEncoder(w).Encode(installationTokenResponse{Token: mock.token})
+		if err := json.NewEncoder(w).Encode(installationTokenResponse{Token: mock.token}); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	})
 
 	return mock
@@ -84,7 +96,11 @@ func setupTestPrivateKey(t *testing.T) (*rsa.PrivateKey, string) {
 	if err != nil {
 		t.Fatalf("Failed to create temp file: %v", err)
 	}
-	defer tmpFile.Close()
+	defer func() {
+		if err := tmpFile.Close(); err != nil {
+			t.Errorf("Failed to close temp file: %v", err)
+		}
+	}()
 
 	// Encode the private key to PEM format
 	privateKeyBytes := x509.MarshalPKCS1PrivateKey(privateKey)
@@ -103,7 +119,11 @@ func setupTestPrivateKey(t *testing.T) (*rsa.PrivateKey, string) {
 
 func TestLoadPrivateKey(t *testing.T) {
 	privateKey, keyPath := setupTestPrivateKey(t)
-	defer os.Remove(keyPath)
+	defer func() {
+		if err := os.Remove(keyPath); err != nil {
+			t.Errorf("Failed to remove temp file: %v", err)
+		}
+	}()
 
 	tests := []struct {
 		name    string
@@ -145,7 +165,11 @@ func TestLoadPrivateKey(t *testing.T) {
 
 func TestGenerateJWT(t *testing.T) {
 	privateKey, keyPath := setupTestPrivateKey(t)
-	defer os.Remove(keyPath)
+	defer func() {
+		if err := os.Remove(keyPath); err != nil {
+			t.Errorf("Failed to remove temp file: %v", err)
+		}
+	}()
 
 	tests := []struct {
 		name       string
@@ -186,8 +210,14 @@ func TestGetInstallationIDFromOrg(t *testing.T) {
 
 	// Override the host for testing
 	originalHost := os.Getenv("GH_HOST")
-	os.Setenv("GH_HOST", strings.TrimPrefix(mock.URL, "https://"))
-	defer os.Setenv("GH_HOST", originalHost)
+	if err := os.Setenv("GH_HOST", strings.TrimPrefix(mock.URL, "https://")); err != nil {
+		t.Fatalf("Failed to set GH_HOST: %v", err)
+	}
+	defer func() {
+		if err := os.Setenv("GH_HOST", originalHost); err != nil {
+			t.Errorf("Failed to restore GH_HOST: %v", err)
+		}
+	}()
 
 	// Configure client to accept self-signed certificates
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{
@@ -234,8 +264,14 @@ func TestGetInstallationIDFromRepo(t *testing.T) {
 
 	// Override the host for testing
 	originalHost := os.Getenv("GH_HOST")
-	os.Setenv("GH_HOST", strings.TrimPrefix(mock.URL, "https://"))
-	defer os.Setenv("GH_HOST", originalHost)
+	if err := os.Setenv("GH_HOST", strings.TrimPrefix(mock.URL, "https://")); err != nil {
+		t.Fatalf("Failed to set GH_HOST: %v", err)
+	}
+	defer func() {
+		if err := os.Setenv("GH_HOST", originalHost); err != nil {
+			t.Errorf("Failed to restore GH_HOST: %v", err)
+		}
+	}()
 
 	// Configure client to accept self-signed certificates
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{
@@ -288,8 +324,14 @@ func TestGetInstallationIDFromUser(t *testing.T) {
 
 	// Override the host for testing
 	originalHost := os.Getenv("GH_HOST")
-	os.Setenv("GH_HOST", strings.TrimPrefix(mock.URL, "https://"))
-	defer os.Setenv("GH_HOST", originalHost)
+	if err := os.Setenv("GH_HOST", strings.TrimPrefix(mock.URL, "https://")); err != nil {
+		t.Fatalf("Failed to set GH_HOST: %v", err)
+	}
+	defer func() {
+		if err := os.Setenv("GH_HOST", originalHost); err != nil {
+			t.Errorf("Failed to restore GH_HOST: %v", err)
+		}
+	}()
 
 	// Configure client to accept self-signed certificates
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{
@@ -336,8 +378,14 @@ func TestGetInstallationToken(t *testing.T) {
 
 	// Override the host for testing
 	originalHost := os.Getenv("GH_HOST")
-	os.Setenv("GH_HOST", strings.TrimPrefix(mock.URL, "https://"))
-	defer os.Setenv("GH_HOST", originalHost)
+	if err := os.Setenv("GH_HOST", strings.TrimPrefix(mock.URL, "https://")); err != nil {
+		t.Fatalf("Failed to set GH_HOST: %v", err)
+	}
+	defer func() {
+		if err := os.Setenv("GH_HOST", originalHost); err != nil {
+			t.Errorf("Failed to restore GH_HOST: %v", err)
+		}
+	}()
 
 	// Configure client to accept self-signed certificates
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{

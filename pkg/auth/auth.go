@@ -33,10 +33,12 @@ func LoadPrivateKey(path string) (*rsa.PrivateKey, error) {
 }
 
 func GenerateJWT(appID int64, privateKey *rsa.PrivateKey) (string, error) {
-	now := time.Now().UTC()
+	now := time.Now()
 	claims := jwt.MapClaims{
-		"iat": now.Unix(),
-		"exp": now.Add(8 * time.Minute).Unix(),
+		// issued at time, 60 seconds in the past to allow for clock drift
+		// see. https://docs.github.com/ja/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-json-web-token-jwt-for-a-github-app#generating-a-json-web-token-jwt
+		"iat": now.Unix() - 60,
+		"exp": now.Add(10 * time.Minute).Unix(),
 		"iss": appID,
 	}
 
@@ -54,10 +56,8 @@ func getHost() string {
 
 func GetInstallationToken(jwtToken string, installationID int64) (string, error) {
 	opts := api.ClientOptions{
-		Host: getHost(),
-		Headers: map[string]string{
-			"Authorization": "Bearer " + jwtToken,
-		},
+		Host:      getHost(),
+		AuthToken: jwtToken,
 	}
 	client, err := api.NewRESTClient(opts)
 	if err != nil {
@@ -79,10 +79,8 @@ type installationResponse struct {
 
 func getInstallationIDFromEndpoint(jwtToken, endpoint string) (int64, error) {
 	opts := api.ClientOptions{
-		Host: getHost(),
-		Headers: map[string]string{
-			"Authorization": "Bearer " + jwtToken,
-		},
+		Host:      getHost(),
+		AuthToken: jwtToken,
 	}
 	client, err := api.NewRESTClient(opts)
 	if err != nil {
