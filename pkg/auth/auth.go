@@ -56,10 +56,8 @@ func getHost() string {
 
 func GetInstallationToken(jwtToken string, installationID int64) (string, error) {
 	opts := api.ClientOptions{
-		Host: getHost(),
-		Headers: map[string]string{
-			"Authorization": "Bearer " + jwtToken,
-		},
+		Host:      getHost(),
+		AuthToken: jwtToken,
 	}
 	client, err := api.NewRESTClient(opts)
 	if err != nil {
@@ -81,10 +79,8 @@ type installationResponse struct {
 
 func getInstallationIDFromEndpoint(jwtToken, endpoint string) (int64, error) {
 	opts := api.ClientOptions{
-		Host: getHost(),
-		Headers: map[string]string{
-			"Authorization": "Bearer " + jwtToken,
-		},
+		Host:      getHost(),
+		AuthToken: jwtToken,
 	}
 	client, err := api.NewRESTClient(opts)
 	if err != nil {
