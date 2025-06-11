@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "1.0.0"
+const version = "1.0.1"
 
 var (
 	appID          int64
@@ -46,9 +46,9 @@ func validateFlags() error {
 }
 
 var rootCmd = &cobra.Command{
-	Use:   "gh-app-token",
-	Short: "GitHub App Authentication Tool",
-	Long:  `A tool to generate GitHub App installation tokens using JWT authentication.`,
+	Use:     "gh-app-token",
+	Short:   "GitHub App Authentication Tool",
+	Long:    `A tool to generate GitHub App installation tokens using JWT authentication.`,
 	Version: version,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		// Check for environment variables if flags are not set
