@@ -1,11 +1,14 @@
 package root
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"os/signal"
 	"strconv"
+	"strings"
 
-	"github.com/buty4649/gh-app-token/pkg/auth"
+	"github.com/buty4649/gh-app-token/pkg/app"
 	"github.com/spf13/cobra"
 )
 
@@ -93,44 +96,52 @@ var rootCmd = &cobra.Command{
 			return err
 		}
 
-		// Load private key
-		privateKey, err := auth.LoadPrivateKey(privateKeyPath)
+		appToken, err := app.New(appID, privateKeyPath)
 		if err != nil {
-			return fmt.Errorf("failed to load private key: %w", err)
+			return fmt.Errorf("failed to create app token: %w", err)
 		}
 
-		// Generate JWT
-		jwtToken, err := auth.GenerateJWT(appID, privateKey)
-		if err != nil {
-			return fmt.Errorf("failed to generate JWT: %w", err)
+		host := os.Getenv("GH_HOST")
+		if host != "" {
+			baseURL := fmt.Sprintf("https://%s/", host)
+			appToken.WithEnterprise(baseURL)
 		}
 
-		// Get installation ID
-		var instID int64
-		if installationID == 0 {
-			if org != "" {
-				instID, err = auth.GetInstallationIDFromOrg(jwtToken, org)
-			} else if repo != "" {
-				instID, err = auth.GetInstallationIDFromRepo(jwtToken, repo)
-			} else if user != "" {
-				instID, err = auth.GetInstallationIDFromUser(jwtToken, user)
-			}
-			if err != nil {
-				return fmt.Errorf("failed to get installation ID: %w", err)
-			}
-		} else {
-			instID = installationID
-		}
-
-		// Get installation token
-		token, err := auth.GetInstallationToken(jwtToken, instID)
+		token, err := getToken(appToken)
 		if err != nil {
-			return fmt.Errorf("failed to get installation token: %w", err)
+			return fmt.Errorf("failed to get token: %w", err)
 		}
 
 		fmt.Println(token)
 		return nil
 	},
+}
+
+func getToken(appToken *app.AppToken) (string, error) {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
+	defer stop()
+
+	if installationID != 0 {
+		return appToken.GetToken(ctx, installationID)
+	}
+
+	if org != "" {
+		return appToken.GetTokenFromOrg(ctx, org)
+	}
+
+	if repo != "" {
+		parts := strings.Split(repo, "/")
+		if len(parts) != 2 {
+			return "", fmt.Errorf("repo must be in format 'owner/repo'")
+		}
+		return appToken.GetTokenFromRepo(ctx, parts[0], parts[1])
+	}
+
+	if user != "" {
+		return appToken.GetTokenFromUser(ctx, user)
+	}
+
+	return "", fmt.Errorf("no installation ID, org, repo, or user provided")
 }
 
 func Execute() {
