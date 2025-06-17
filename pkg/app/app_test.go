@@ -30,22 +30,30 @@ func setupMockServer() *mockServer {
 
 	mux.HandleFunc("/app/installations/123/access_tokens", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte(`{"token":"mocked_token"}`))
+		if _, err := w.Write([]byte(`{"token":"mocked_token"}`)); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 	})
 
 	mux.HandleFunc("/orgs/testorg/installation", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"id":123}`))
+		if _, err := w.Write([]byte(`{"id":123}`)); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 	})
 
 	mux.HandleFunc("/repos/testowner/testrepo/installation", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"id":123}`))
+		if _, err := w.Write([]byte(`{"id":123}`)); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 	})
 
 	mux.HandleFunc("/users/testuser/installation", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"id":123}`))
+		if _, err := w.Write([]byte(`{"id":123}`)); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 	})
 
 	return &mockServer{
@@ -99,7 +107,11 @@ func setupTestPrivateKey(t *testing.T) (*rsa.PrivateKey, string) {
 
 func Test_generateJWT(t *testing.T) {
 	_, keyPath := setupTestPrivateKey(t)
-	defer os.Remove(keyPath)
+	defer func() {
+		if err := os.Remove(keyPath); err != nil {
+			t.Errorf("Failed to remove key file: %v", err)
+		}
+	}()
 
 	tests := []struct {
 		name    string
@@ -125,7 +137,11 @@ func Test_generateJWT(t *testing.T) {
 
 func TestNew(t *testing.T) {
 	_, keyPath := setupTestPrivateKey(t)
-	defer os.Remove(keyPath)
+	defer func() {
+		if err := os.Remove(keyPath); err != nil {
+			t.Errorf("Failed to remove key file: %v", err)
+		}
+	}()
 
 	_, err := New(12345, keyPath)
 	if err != nil {
@@ -140,7 +156,11 @@ func TestNew(t *testing.T) {
 
 func TestAppToken_GetTokenFromOrg(t *testing.T) {
 	_, keyPath := setupTestPrivateKey(t)
-	defer os.Remove(keyPath)
+	defer func() {
+		if err := os.Remove(keyPath); err != nil {
+			t.Errorf("Failed to remove key file: %v", err)
+		}
+	}()
 	app, err := New(12345, keyPath)
 	if err != nil {
 		t.Fatalf("New() error: %v", err)
@@ -149,28 +169,28 @@ func TestAppToken_GetTokenFromOrg(t *testing.T) {
 	ctx := context.Background()
 
 	tests := []struct {
-		name         string
-		org          string
-		wantToken    string
-		wantErr      bool
+		name      string
+		org       string
+		wantToken string
+		wantErr   bool
 	}{
 		{
-			name:         "Error: empty org",
-			org:          "",
-			wantToken:    "",
-			wantErr:      true,
+			name:      "Error: empty org",
+			org:       "",
+			wantToken: "",
+			wantErr:   true,
 		},
 		{
-			name:         "Success: returns valid token",
-			org:          "testorg",
-			wantToken:    "mocked_token",
-			wantErr:      false,
+			name:      "Success: returns valid token",
+			org:       "testorg",
+			wantToken: "mocked_token",
+			wantErr:   false,
 		},
 		{
-			name:         "Error: not found",
-			org:          "notfound",
-			wantToken:    "",
-			wantErr:      true,
+			name:      "Error: not found",
+			org:       "notfound",
+			wantToken: "",
+			wantErr:   true,
 		},
 	}
 
@@ -198,7 +218,11 @@ func TestAppToken_GetTokenFromOrg(t *testing.T) {
 
 func TestAppToken_GetTokenFromRepo(t *testing.T) {
 	_, keyPath := setupTestPrivateKey(t)
-	defer os.Remove(keyPath)
+	defer func() {
+		if err := os.Remove(keyPath); err != nil {
+			t.Errorf("Failed to remove key file: %v", err)
+		}
+	}()
 	app, err := New(12345, keyPath)
 	if err != nil {
 		t.Fatalf("New() error: %v", err)
@@ -207,39 +231,39 @@ func TestAppToken_GetTokenFromRepo(t *testing.T) {
 	ctx := context.Background()
 
 	tests := []struct {
-		name         string
-		owner        string
-		repo         string
-		wantToken    string
-		wantErr      bool
+		name      string
+		owner     string
+		repo      string
+		wantToken string
+		wantErr   bool
 	}{
 		{
-			name:         "Error: empty owner",
-			owner:        "",
-			repo:         "repo",
-			wantToken:    "",
-			wantErr:      true,
+			name:      "Error: empty owner",
+			owner:     "",
+			repo:      "repo",
+			wantToken: "",
+			wantErr:   true,
 		},
 		{
-			name:         "Error: empty repo",
-			owner:        "owner",
-			repo:         "",
-			wantToken:    "",
-			wantErr:      true,
+			name:      "Error: empty repo",
+			owner:     "owner",
+			repo:      "",
+			wantToken: "",
+			wantErr:   true,
 		},
 		{
-			name:         "Success: returns valid token",
-			owner:        "testowner",
-			repo:         "testrepo",
-			wantToken:    "mocked_token",
-			wantErr:      false,
+			name:      "Success: returns valid token",
+			owner:     "testowner",
+			repo:      "testrepo",
+			wantToken: "mocked_token",
+			wantErr:   false,
 		},
 		{
-			name:         "Error: owner/repo not found",
-			owner:        "notfound",
-			repo:         "repo",
-			wantToken:    "",
-			wantErr:      true,
+			name:      "Error: owner/repo not found",
+			owner:     "notfound",
+			repo:      "repo",
+			wantToken: "",
+			wantErr:   true,
 		},
 	}
 
@@ -267,7 +291,11 @@ func TestAppToken_GetTokenFromRepo(t *testing.T) {
 
 func TestAppToken_GetTokenFromUser(t *testing.T) {
 	_, keyPath := setupTestPrivateKey(t)
-	defer os.Remove(keyPath)
+	defer func() {
+		if err := os.Remove(keyPath); err != nil {
+			t.Errorf("Failed to remove key file: %v", err)
+		}
+	}()
 	app, err := New(12345, keyPath)
 	if err != nil {
 		t.Fatalf("New() error: %v", err)
@@ -276,28 +304,28 @@ func TestAppToken_GetTokenFromUser(t *testing.T) {
 	ctx := context.Background()
 
 	tests := []struct {
-		name         string
-		user         string
-		wantToken    string
-		wantErr      bool
+		name      string
+		user      string
+		wantToken string
+		wantErr   bool
 	}{
 		{
-			name:         "Error: empty user",
-			user:         "",
-			wantToken:    "",
-			wantErr:      true,
+			name:      "Error: empty user",
+			user:      "",
+			wantToken: "",
+			wantErr:   true,
 		},
 		{
-			name:         "Success: returns valid token",
-			user:         "testuser",
-			wantToken:    "mocked_token",
-			wantErr:      false,
+			name:      "Success: returns valid token",
+			user:      "testuser",
+			wantToken: "mocked_token",
+			wantErr:   false,
 		},
 		{
-			name:         "Error: user not found",
-			user:         "servererror",
-			wantToken:    "",
-			wantErr:      true,
+			name:      "Error: user not found",
+			user:      "servererror",
+			wantToken: "",
+			wantErr:   true,
 		},
 	}
 
@@ -326,7 +354,11 @@ func TestAppToken_GetTokenFromUser(t *testing.T) {
 
 func TestAppToken_GetToken(t *testing.T) {
 	_, keyPath := setupTestPrivateKey(t)
-	defer os.Remove(keyPath)
+	defer func() {
+		if err := os.Remove(keyPath); err != nil {
+			t.Errorf("Failed to remove key file: %v", err)
+		}
+	}()
 	app, err := New(12345, keyPath)
 	if err != nil {
 		t.Fatalf("New() error: %v", err)

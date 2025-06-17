@@ -104,7 +104,9 @@ var rootCmd = &cobra.Command{
 		host := os.Getenv("GH_HOST")
 		if host != "" {
 			baseURL := fmt.Sprintf("https://%s/", host)
-			appToken.WithEnterprise(baseURL)
+			if err := appToken.WithEnterprise(baseURL); err != nil {
+				return fmt.Errorf("failed to set enterprise base URL: %w", err)
+			}
 		}
 
 		token, err := getToken(appToken)
